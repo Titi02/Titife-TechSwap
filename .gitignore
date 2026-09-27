@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build / output artifacts
+dist/
+build/
+coverage/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Explicitly tracked project artefacts (do not ignore) ---
+!.env.example
+!PRD.md
+!AGENTS.md
+!README.md
+!docs/
+!evidence/
+!prisma/migrations/
+!prisma/seed.ts

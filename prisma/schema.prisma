@@ -1,0 +1,180 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ItemCondition {
+  FOR_PARTS
+  FAIR
+  GOOD
+  VERY_GOOD
+  LIKE_NEW
+  REFURBISHED
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  RESERVED
+  SOLD
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id             String    @id
+  email          String    @unique
+  passwordHash   String
+  fullName       String
+  phoneNumber    String    @unique
+  role           UserRole  @default(USER)
+  verifiedSeller Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  listings      Listing[] @relation("SellerListings")
+  buyerOrders   Order[]   @relation("BuyerOrders")
+  sellerOrders  Order[]   @relation("SellerOrders")
+  buyerReviews  Review[]  @relation("BuyerReviews")
+  sellerReviews Review[]  @relation("SellerReviews")
+}
+
+model Category {
+  id          String   @id
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  listings Listing[]
+}
+
+model Listing {
+  id          String        @id
+  sellerId    String
+  categoryId  String
+  title       String
+  description String
+  brand       String
+  modelName   String
+  condition   ItemCondition
+  specs       Json
+  priceAmount Int // Price in NGN minor units (Kobo)
+  currency    String        @default("NGN")
+  status      ListingStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  seller   User           @relation("SellerListings", fields: [sellerId], references: [id])
+  category Category       @relation(fields: [categoryId], references: [id])
+  images   ListingImage[]
+  tags     ListingTag[]
+  orders   Order[]
+
+  @@index([sellerId, status, createdAt(sort: Desc)], name: "idx_listing_seller_status")
+  @@index([categoryId, condition, createdAt(sort: Desc)], name: "idx_listing_search_filter")
+}
+
+model ListingImage {
+  id           String   @id
+  listingId    String
+  url          String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id        String   @id
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listings ListingTag[]
+}
+
+model ListingTag {
+  listingId String
+  tagId     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, tagId])
+}
+
+model Order {
+  id                String      @id
+  orderNumber       String      @unique
+  buyerId           String
+  sellerId          String
+  listingId         String
+  status            OrderStatus @default(PENDING_PAYMENT)
+  subtotalAmount    Int // Minor units (Kobo)
+  shippingFeeAmount Int         @default(0) // Minor units (Kobo)
+  totalAmount       Int // Minor units (Kobo)
+  currency          String      @default("NGN")
+  shippingAddress   Json
+  trackingNumber    String?
+  carrier           String?
+  idempotencyKey    String      @unique
+  paidAt            DateTime?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  deletedAt         DateTime?
+
+  buyer   User    @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller  User    @relation("SellerOrders", fields: [sellerId], references: [id])
+  listing Listing @relation(fields: [listingId], references: [id])
+  review  Review?
+
+  @@index([sellerId, status, createdAt(sort: Asc)], name: "idx_order_seller_status")
+}
+
+model Review {
+  id        String    @id
+  orderId   String    @unique
+  buyerId   String
+  sellerId  String
+  rating    Int
+  title     String
+  comment   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  order  Order @relation(fields: [orderId], references: [id])
+  buyer  User  @relation("BuyerReviews", fields: [buyerId], references: [id])
+  seller User  @relation("SellerReviews", fields: [sellerId], references: [id])
+
+  @@index([sellerId, createdAt(sort: Desc)], name: "idx_review_seller_created")
+}
