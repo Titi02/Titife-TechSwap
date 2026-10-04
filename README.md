@@ -10,7 +10,7 @@ A **Phase 2 database assessment**, not a running application: PostgreSQL schema,
 
 **Assessment purpose.** Show the design holds at the database kernel level: money modelled safely, state machines enforced by triggers not convention, concurrency invariants enforced by real constraints, and every claim backed by captured evidence rather than assertion.
 
-**Scope.** Schema, migration, seed, constraints, indexes, triggers, proof queries, query plans. Non-goals ([PRD.md §1.1](PRD.md)): multi-seller carts, escrow payment webhooks, live peer-to-peer chat, physical repair services.
+**Scope.** Schema, migration, seed, constraints, indexes, triggers, proof queries, query plans. Non-goals ([docs/PRD.md §1.1](docs/PRD.md)): multi-seller carts, escrow payment webhooks, live peer-to-peer chat, physical repair services.
 
 ## 2. Requirements — The Five Important Actions
 
@@ -22,11 +22,11 @@ A **Phase 2 database assessment**, not a running application: PostgreSQL schema,
 | ACT-4 | `FULFILL_ORDER` — advance `PAID → SHIPPED → DELIVERED` with tracking info | Seller |
 | ACT-5 | `SUBMIT_ORDER_REVIEW` — review a `COMPLETED` order (1 review per order) | Buyer |
 
-Every index in the schema maps to one of these five actions — [PRD.md §3.7](PRD.md).
+Every index in the schema maps to one of these five actions — [docs/PRD.md §3.7](docs/PRD.md).
 
 ## 3. Tech Stack
 
-TypeScript (strict mode) · Prisma 5.22 · PostgreSQL (16.15 on the proof machine) · CUID2 non-sequential identifiers · `tsx` for seed and proof scripts · `INTEGER` minor units for all money. Deployment target is Vercel + managed PostgreSQL ([PRD.md §0](PRD.md)). No Docker, container, or web server.
+TypeScript (strict mode) · Prisma 5.22 · PostgreSQL (16.15 on the proof machine) · CUID2 non-sequential identifiers · `tsx` for seed and proof scripts · `INTEGER` minor units for all money. Deployment target is Vercel + managed PostgreSQL ([docs/PRD.md §0](docs/PRD.md)). No Docker, container, or web server.
 
 ## 4. Data Model
 
@@ -36,7 +36,7 @@ Eight tables, four enum domains, 11 named foreign-key constraints, one composite
 
 ## 5. Seven Hard Questions
 
-Brief summaries; [PRD.md §3](PRD.md) is authoritative and holds the full reasoning.
+Brief summaries; [docs/PRD.md §3](docs/PRD.md) is authoritative and holds the full reasoning.
 
 **Normalization.** Two deliberate denormalizations: `Order.subtotalAmount` (of `Listing.priceAmount`) for an immutable contract-price audit snapshot, and `Order.sellerId`/`Review.sellerId` (of `Listing.sellerId`) to avoid seller-dashboard joins and preserve attribution — enforced by `trg_order_seller_match_check`. (§3.1)
 
@@ -56,7 +56,7 @@ Brief summaries; [PRD.md §3](PRD.md) is authoritative and holds the full reason
 
 ## 6. API Design
 
-> **Status: design and documentation only. No API is implemented.** This repository contains no route handlers, controllers, or server code. The contracts below are documented in [PRD.md §4](PRD.md) and have not been built.
+> **Status: design and documentation only. No API is implemented.** This repository contains no route handlers, controllers, or server code. The contracts below are documented in [docs/PRD.md §4](docs/PRD.md) and have not been built.
 
 ACT-1 `POST /api/v1/listings` · ACT-2 `GET /api/v1/listings` (public) · ACT-3 `POST /api/v1/orders` · ACT-4 `PATCH /api/v1/orders/:id/fulfillment` · ACT-5 `POST /api/v1/reviews`
 
@@ -93,12 +93,12 @@ Proof text: [summary](evidence/proof_execution_summary.txt) · [ACT-2 plan](evid
 
 ## 10. Defence Questions
 
-Assessment preparation prompts. Answers are in [PRD.md §9](PRD.md) and are not restated here.
+Assessment preparation prompts. Answers are in [docs/PRD.md §9](docs/PRD.md) and are not restated here.
 
-1. "Show me a fact that lives in two places and defend it." → §9.1
-2. "A buyer attempts to purchase a one-of-one listing that already has an active order. Which database constraint or transaction rule prevents it from being reserved or sold twice?" → §9.2, §3.6.3
-3. "Why does the order record store the agreed amount rather than looking up the listing's current price?" → §9.3
-4. "At what point would you consider GraphQL for an endpoint, and what concrete query/client requirements would trigger that decision?" → §9.4
+1. "Show me a fact that lives in two places and defend it." → [docs/PRD.md §9.1](docs/docs/PRD.md#)
+2. "A buyer attempts to purchase a one-of-one listing that already has an active order. Which database constraint or transaction rule prevents it from being reserved or sold twice?" → [docs/PRD.md §9.2](docs/docs/PRD.md#), [docs/PRD.md §3.6.3](docs/docs/PRD.md#)
+3. "Why does the order record store the agreed amount rather than looking up the listing's current price?" → [docs/PRD.md §9.3](docs/docs/PRD.md#)
+4. "At what point would you consider GraphQL for an endpoint, and what concrete query/client requirements would trigger that decision?" → [docs/PRD.md §9.4](docs/docs/PRD.md#)
 
 ## 11. Running the Project
 
@@ -118,6 +118,6 @@ New migrations are **hand-authored**: create `prisma/migrations/<timestamp>_<nam
 
 ## 12. Documentation
 
-[PRD.md](PRD.md) — the detailed assessment document. [docs/erd.md](docs/erd.md) — implemented-schema ERD with all 11 named FK constraints, delete actions, and key/constraint registers. [docs/order-state-machine.md](docs/order-state-machine.md) — the implemented `trg_order_status_check` trigger: transition matrix, terminal states, forbidden transitions, enforcement scope. [AGENTS.md](AGENTS.md) — engineering governance and the non-negotiable rules this schema must satisfy.
+[docs/PRD.md](docs/PRD.md) — the detailed assessment document. [docs/erd.md](docs/erd.md) — implemented-schema ERD with all 11 named FK constraints, delete actions, and key/constraint registers. [docs/order-state-machine.md](docs/order-state-machine.md) — the implemented `trg_order_status_check` trigger: transition matrix, terminal states, forbidden transitions, enforcement scope. [AGENTS.md](AGENTS.md) — engineering governance and the non-negotiable rules this schema must satisfy.
 
 Where documents disagree, priority is `migration.sql` > `prisma/schema.prisma` > the documentation.
